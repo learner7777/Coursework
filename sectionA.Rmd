@@ -1,0 +1,105 @@
+---
+title: "Section A"
+author: "Raghav Sharma"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **SECTION A**
+
+The explanatory text will be added later
+
+## Setup
+
+This section is for importing all neccessary packages and files.
+
+```{r}
+library("tidyverse")
+```
+
+
+## A 1
+Reading the data as data_orignal and printing the number of rows and columns.
+```{r}
+data_orignal = read_csv("C:\\Users\\sragh\\OneDrive\\Documents\\Sem 1 Coursework\\SCEM\\finance_data_2022.csv")
+summary(data_orignal)
+```
+## A 2
+
+**Using the data frame “data original”, generate a new data frame called “finance data” with**
+**5 columns:**
+
+**The 1st column should be called IFC and correspond to the IFC Region column in the csv**
+**file.**
+
+**The 2nd column should be called IFC_CC and correspond to the “IFC Cumulative Commitments**
+**(US$ Thousands)” column in the csv file.**
+
+**The 3rd column should be called Country and correspond to the “Country” column in the**
+**csv file.**
+
+**The 4th column should be called Loan_Guarantee_CC and correspond to the “Loan & Guarantee**
+**participations Cumulative Commitments (US$ Thousands)” column in the csv file.**
+
+**The last column should be called Date and correspond to the “As of Date” column in the**
+**csv file.**
+
+```{r}
+finance_data = rename(data_orignal, "IFC" = "IFC Region" ,"IFC_CC" =  "IFC Cumulative Commitments (US$ Thousands)", "Loan_Guarantee_CC"="Loan & Guarantee participations Cumulative Commitments (US$ Thousands)" , "Date" = "As of Date") %>% select(IFC,IFC_CC,Country,Loan_Guarantee_CC,Date)
+
+```
+
+
+## A 3
+
+```{r}
+data_part1 = filter(finance_data, IFC_CC >= 300000 & Loan_Guarantee_CC <= 500000) %>% arrange(desc(IFC_CC))
+head(select(data_part1,IFC,IFC_CC,Loan_Guarantee_CC),4)
+```
+
+
+
+## A 4
+
+```{r}
+finance_data = mutate(finance_data, IFC_Ratio = IFC_CC/(IFC_CC+Loan_Guarantee_CC))
+head(select(finance_data,IFC,IFC_CC,Loan_Guarantee_CC,IFC_Ratio),5)  
+```
+
+## A 5
+
+```{r}
+finance_data = finance_data %>% separate("Date", into=c("day","month","year"),sep="/",convert = TRUE)
+head(select(finance_data,IFC_CC,day,month,year),5)
+```
+
+
+## A 6 
+
+```{r}
+ summary_data = finance_data %>% group_by(IFC) %>% summarise(IFC = unique(IFC) , ifc_mn = mean(IFC_CC,na.rm=TRUE),ifc_21q= quantile(IFC_CC,probs=0.21,na.rm=TRUE), ifc_var=var(IFC_CC,na.rm=TRUE), lg_mn =mean(Loan_Guarantee_CC,na.rm=TRUE),lg_21q=quantile(Loan_Guarantee_CC,probs=0.21,na.rm=TRUE),lg_var=var(Loan_Guarantee_CC,na.rm=TRUE))
+print(summary_data)
+```
+
+## A 7
+
+```{r}
+arg_brz_data = filter(finance_data, Country=="Argentina" | Country=="Brazil")
+ggplot(arg_brz_data)+geom_point(aes(x=year-2000,y=IFC_CC/1000,color="IFC_CC"))+geom_point(aes(x=year-2000,y=Loan_Guarantee_CC/1000,color="Loan_Guarantee_CC"))+xlab("years")+ylab("Cumulative Commitments(million $)")+facet_wrap(~Country)
+```
+
+## A 8
+```{r}
+impute_by_quantile = function(vect){
+  q=quantile(vect,probs=0.9,na.rm=TRUE)
+  t=replace_na(vect,c(q))
+  return(t)
+}
+finance_data=finance_data %>% mutate(IFC_CC=impute_by_quantile(IFC_CC),Loan_Guarantee_CC=impute_by_quantile(Loan_Guarantee_CC),IFC_Ratio=impute_by_quantile(IFC_Ratio))
+answer_df = finance_data %>% summarise(IFC_CC=mean(IFC_CC),Loan_Guarantee_CC=mean(Loan_Guarantee_CC),IFC_Ratio=mean(IFC_Ratio))
+print(answer_df)
+```
